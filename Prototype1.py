@@ -13,27 +13,31 @@ filetype = "FILE"
 filesize = os.path.getsize(filepath)
 
 #Hash file
-import hashlib
+def hashFile(path):
+    """Takes a file path, returns a byte array (64 bytes) representing the sha3_512 hash of the file"""
+    import hashlib
+    h = hashlib.sha3_512()
+    f1 = open(filepath, 'br')
+    #parses data 1MB at a time, to avoid loading the entirty of a file into memory
+    data = f1.read(1024*1024)
+    while len(data) == 1024*1024:
+        h.update(data)
+        data = f1.read(1024*1024)
+    f1.close()
+    if len(data) > 0:
+        h.update(data)
+    return h.digest()
 
-h = hashlib.sha3_512()
-f1 = open(filepath, 'br')
-temp = f1.read(512)
-while len(temp) == 512:
-    h.update(temp)
-    temp = f1.read(512)
-if len(temp) > 0:
-    temp = temp + bytes(512 - len(temp))
-    h.update(temp)
-f1.close()
-filehash = int.from_bytes(h.digest(), byteorder='big')
-del(h)
+filehash = hashFile(filepath)
 
+    
 #generate data-structure for metadata file
 import math
+import hashlib
 
 def bytes_int(input):
     pass
-
+filehash = int.from_bytes(filehash, byteorder='big')
 pieceSize = 512*1024
 files = {filepath:{"SIZE":filesize, "START":0, "END":filesize, "HASH": filehash}}
 numberOfPieces = math.ceil(filesize/pieceSize)
