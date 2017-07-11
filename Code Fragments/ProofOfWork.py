@@ -1,3 +1,4 @@
+"""an idea for a proof of work function, to minimize DOS attacks"""
 import random
 
 def primeList(limit):
