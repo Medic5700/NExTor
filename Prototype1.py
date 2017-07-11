@@ -1,4 +1,53 @@
 '''This is just a prototype for handling the files?'''
+class Debug:
+    """Class for logging and debuging"""
+    
+    def __init__(self, debugMode, file = "Debug.log"):
+        self.__filename = file
+        self.showDebug = debugMode #Bool
+        
+    def __save(self, text):
+        """Saves text to file as a log entry"""
+        logfile = open(self.__filename, 'a')
+        try:
+            logfile.write(text)
+        except:
+            self.err("Error Occured in Error Logging Function: Attempting to report previous error")
+            for i in text:
+                try:
+                    logfile.write(i)
+                except:
+                    logfile.write("[ERROR]")
+        logfile.close()
+
+    def log(self, text):
+        """Takes string, pushes to stdout AND saves it to the log file
+        
+        For general logging, and non-fatal errors
+        """
+        temp = "[" + time.asctime() + "] Log: " + text
+        print(temp)
+        self.__save(temp + "\n")
+    
+    def err(self, text):
+        """Takes string, pushes to stdout and saves it to the log file
+        
+        Mainly meant for non-recoverable errors that should cause the program to terminate"""
+        temp = "[" + time.asctime() + "] ERR: " + text
+        print(temp)
+        self.__save(temp + "\n")        
+    
+    def debug(self, *args):
+        """takes n number of strings, pushes to stdout and log file
+        
+        only writes input to stdout/log file when self.showDebug is True (debugMode was set to true when initialized)"""
+        if (self.showDebug):
+            temp = "Debug:"
+            for i in args:
+                temp += "\t" + str(i) + "\n"
+            print(temp, end="") #fixes issue where log and sceen output newlines don't match
+            self.__save(temp)
+
 import os
 
 #Get basic data about file
