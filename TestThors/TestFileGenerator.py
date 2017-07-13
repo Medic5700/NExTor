@@ -50,26 +50,43 @@ if not os.path.exists("tmp2"):
     os.makedirs("tmp2")
 for i in range(0, 4):
     f1 = open("tmp2/" + str(i).zfill(4) + ".tmp", "bw")
-    for i in range(0, 64*1024*1024):
-        f1.write(bytes([i % 256]))
+    for j in range(0, 64*1024*1024):
+        f1.write(bytes([j % 256]))
     f1.close()
 for i in range(0, 16):
     f1 = open("tmp2/" + str(i + 4).zfill(4) + ".tmp", "bw")
-    for i in range(0, 64*1024):
-        f1.write(bytes([i % 256]))
+    for j in range(0, 64*1024):
+        f1.write(bytes([j % 256]))
     f1.close()
 for i in range(0, 64):
     f1 = open("tmp2/" + str(i + 4 + 16).zfill(4) + ".tmp", "bw")
-    for i in range(0, 1024):
-        f1.write(bytes([i % 256]))
+    for j in range(0, 1024):
+        f1.write(bytes([j % 256]))
     f1.close()
     
 #Multiple files, various file size, odd, simple name
 print("Creating: Multiple files, small file size, odd, simple name")
-if not os.path.exists("tmp3"):
-    os.makedirs("tmp3")
+root = "tmp3/"
+if not os.path.exists(root):
+    os.makedirs(root)
 for i in range(0, 1024):
-    f1 = open("tmp3/" + str(i).zfill(4) + ".tmp", "bw")
-    for i in range(0, 16*1024):
-        f1.write(bytes([i % 256]))
+    f1 = open(root + str(i).zfill(4) + ".tmp", "bw")
+    for j in range(0, 16*1024):
+        f1.write(bytes([j % 256]))
+    f1.close()
+
+#Multiple files, various file size, odd, simple name
+print("Creating: Multiple files, small file size, odd, simple name")
+root = "tmp4/"
+if not os.path.exists(root):
+    os.makedirs(root)
+for i in range(0, 1024):
+    f1 = open(root + str(i).zfill(4) + ".tmp", "bw")
+    for j in range(0, 21*1024):
+        f1.write(bytes([j % 256]))
+    f1.close()
+    
+    f1 = open(root + str(i).zfill(4) + "b.tmp", "bw")
+    for j in range(0, 1024 + 10):
+        f1.write(bytes([j % 256]))
     f1.close()
