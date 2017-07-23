@@ -232,34 +232,80 @@ class TorrentSerializedObject:
     import os
     """This creates a file like object that can be read() from for the entirety of the torrent, automatically zero filling gaps, and concatinating the files"""
     def __init__ (self, fileDictionary, peiceSize):
+        #assume fileDictionary valid
         self.buffer = bytes(0)
         self.bufferSize = peiceSize #set to the minumum chunk size possible for any torrent
         self.position = 0
         self.blockPosition = 0
-        self.fileList = fileDictionary #a dictionary of files indexed by start position
-        #self.currentFile = self.fileList[0]
+        self.fileDictionary = fileDictionary #a dictionary of files indexed by start position
         
-        self.loadBuffer(0)
+        self._loadBuffer(0)
     
-    def loadBuffer (self, position):
+    def _loadBuffer (self, position):
+        """When a cache miss occurs, load buffer starting at position"""
+        self.buffer = bytes(0)
+        
         #find the positions of the files
-        temp = sorted(self.fileList.keys(), reverse=True)
+        temp = sorted(self.fileDictionary.keys(), reverse=True) #sort -> greatest first
         fileStart = None
-        for i in temp:
+        for i in temp: #finds file highest indexed that starts before position
             if position >= i:
                 fileStart = i
                 break
-        stderr.debug("loadBuffer", "fileStart = " + str(fileStart))
-        #fileStart is always <= position
-        fileOffset = position - fileStart
         
-        #handle condition where file ends before start of block
+        #peice bounderies always have a file starting on them, or have a file going through them, empty space is not allowed at bounderies but should be handled as though valid #TODO
+        #handle condition where file ends before start of block #TODO
         
-    
+        fileLast = None
+        positionEnd = position + self.bufferSize - 1 #inclusive IE: last bytes that is still part of this chunk
+        # [0, 10, 20, 30]
+        # [[0, 0F], [10, 1F], [20, 2F]]
+        for i in temp: #finds file highest indexed that starts before positionEnd
+            if positionEnd >= i:
+                fileLast = i
+                break
+        
+        stderr.debug("TorrentSerializedObject._loadBuffer", "fileStart = " + str(fileStart), "fileLast = " + str(fileLast), "positionEnd = " + str(positionEnd))
+        
+        #start filling buffer
+        currentPosition = position
+        fileList = []
+        fileOffset = position - fileStart #fileStart is always <= position
+        
+        stderr.debug("TorrentSerializedObject._loadBuffer", "fileOffset = " + str(fileOffset))
+        
+        #generated list of files to go through
+        for i in temp:
+            if i >= fileStart and i <= fileLast:
+                fileList.append(i)
+        fileList = sorted(fileList)
+        
+        stderr.debug("TorrentSerializedObject._loadBuffer", "fileList = " + str(fileList))
+        
+        for i in fileList:
+            file = self.fileDictionary[i]
+            f1 = open(file.filePath, 'rb')
+            if fileOffset != 0:
+                f1.seek(fileOffset)
+            self.buffer = self.buffer + f1.read(positionEnd + 1 - currentPosition)
+            
+            f1.close()
+            currentPosition += file.fileSize
+            stderr.debug("TorrentSerializedObject._loadBuffer -> fileList Loop", "current file = " + str(i), "bufferSize = " + str(len(self.buffer)), "currentPosition = " + str(currentPosition))
+        
+        stderr.debug("TorrentSerializedObject._loadBuffer", "bufferSize = " + str(len(self.buffer)))
+        if positionEnd + 1 - currentPosition != 0:
+            self.buffer = self.buffer + bytes(positionEnd + 1 - currentPosition)
+            stderr.debug("TorrentSerializedObject._loadBuffer", "zfilling size= " + str(positionEnd + 1 - currentPosition))
+        stderr.debug("TorrentSerializedObject._loadBuffer", "bufferSize = " + str(len(self.buffer)))
+        
+            
     def read (self, size):
         fileStart = self.currentFile.start
         
-temp = TorrentSerializedObject(torrentFiles)
+stderr.debug("TorrentStats", "torrentPieceSize = " + str(torrentPieceSize), "torrentSize = " + str(torrentSize), "torrentRoot = " + str(torrentRoot))
+        
+temp = TorrentSerializedObject(torrentFiles, torrentPieceSize)
 #generate data-structure for metadata file
 '''
 import math
