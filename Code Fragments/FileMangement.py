@@ -1,4 +1,5 @@
 '''Code fragment to deal with file mangement'''
+# https://docs.python.org/3/library/os.path.html#module-os.path
 import os
 
 #standard file read
