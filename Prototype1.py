@@ -65,7 +65,7 @@ def walk(path='.'):
                 output.append(os.path.join(j))
     return output
 
-torrentRoot = "./TestThors/tmp1"
+torrentRoot = "./TestThors/tmp4"
 if not os.path.exists(torrentRoot):
     print("filepath does not exist")
     exit()
@@ -214,13 +214,12 @@ def fileOrganizer(pathList):
 torrentFiles = fileOrganizer(fileList)
 
 #debug output
-pieceSize = pieceSizeCalc(torrentSize)
 for i in sorted(torrentFiles.keys()):
     debugTemp = []
     start = torrentFiles[i].start
     while start < torrentFiles[i].start + torrentFiles[i].fileSize - 1:
-        debugTemp.append(start/pieceSize)
-        start += pieceSize
+        debugTemp.append(start/torrentPieceSize)
+        start += torrentPieceSize
     stderr.debug(torrentFiles[i], debugTemp)
         
 #hash files larger then 256*1024
@@ -233,13 +232,19 @@ class TorrentSerializedObject:
     """This creates a file like object that can be read() from for the entirety of the torrent, automatically zero filling gaps, and concatinating the files"""
     def __init__ (self, fileDictionary, peiceSize):
         #assume fileDictionary valid
+        assert len(fileDictionary) != 0
         self.buffer = bytes(0)
         self.bufferSize = peiceSize #set to the minumum chunk size possible for any torrent
         self.position = 0
         self.blockPosition = 0
         self.fileDictionary = fileDictionary #a dictionary of files indexed by start position
+        self.lastByte = None #contains the last byte (inclusive) of the torrent
         
-        self._loadBuffer(0)
+        #self._loadBuffer(0)
+        
+        temp = sorted(self.fileDictionary.keys(), reverse=True) #sorted in greatest to least
+        tempfile = self.fileDictionary[temp[0]]
+        self.lastByte = temp[0] + tempfile.fileSize
     
     def _loadBuffer (self, position):
         """When a cache miss occurs, load buffer starting at position"""
@@ -283,30 +288,75 @@ class TorrentSerializedObject:
         stderr.debug("TorrentSerializedObject._loadBuffer", "fileList = " + str(fileList))
         
         for i in fileList:
+            
             file = self.fileDictionary[i]
+            
+            stderr.debug("TorrentSerializedObject._loadBuffer -> fileList Loop", 
+                         "current file = " + str(i), 
+                         "current filename = " + str(file.filePath),
+                         "bufferSize = " + str(len(self.buffer)), 
+                         "currentPosition = " + str(currentPosition))            
+            
             f1 = open(file.filePath, 'rb')
+            
             if fileOffset != 0:
                 f1.seek(fileOffset)
+                fileOffset = 0
             self.buffer = self.buffer + f1.read(positionEnd + 1 - currentPosition)
             
             f1.close()
-            currentPosition += file.fileSize
-            stderr.debug("TorrentSerializedObject._loadBuffer -> fileList Loop", "current file = " + str(i), "bufferSize = " + str(len(self.buffer)), "currentPosition = " + str(currentPosition))
-        
+            #currentPosition += file.fileSize
+            currentPosition += positionEnd + 1 - currentPosition #not addrected by fileOffset
+
         stderr.debug("TorrentSerializedObject._loadBuffer", "bufferSize = " + str(len(self.buffer)))
-        if positionEnd + 1 - currentPosition != 0:
+        if positionEnd + 1 - currentPosition > 0:
+            stderr.debug("TorrentSerializedObject._loadBuffer", 
+                         "zfilling size= " + str(positionEnd + 1 - currentPosition), 
+                         "positionEnd = " + str(positionEnd), 
+                         "currentPosition = " + str(currentPosition))
             self.buffer = self.buffer + bytes(positionEnd + 1 - currentPosition)
-            stderr.debug("TorrentSerializedObject._loadBuffer", "zfilling size= " + str(positionEnd + 1 - currentPosition))
         stderr.debug("TorrentSerializedObject._loadBuffer", "bufferSize = " + str(len(self.buffer)))
         
-            
+    def readBlock(self):
+        """returns one block of data as a byte array"""
+        #TODO: check for end condition to return EOF
+        if self.position < self.lastByte:
+            self._loadBuffer(self.position)
+            self.position += self.bufferSize
+            return self.buffer[:]
+        else:
+            return bytes(0)
+        
     def read (self, size):
-        fileStart = self.currentFile.start
+        """reads size bytes from buffer, zero padded when neccicary, returns byte array, or empty byte array when EOF"""
+        pass
         
-stderr.debug("TorrentStats", "torrentPieceSize = " + str(torrentPieceSize), "torrentSize = " + str(torrentSize), "torrentRoot = " + str(torrentRoot))
+stderr.debug("TorrentStats", 
+             "torrentPieceSize = " + str(torrentPieceSize), 
+             "torrentSize = " + str(torrentSize), 
+             "torrentRoot = " + str(torrentRoot))
         
-temp = TorrentSerializedObject(torrentFiles, torrentPieceSize)
+#construct peice hashes
+import hashlib
+f1 = TorrentSerializedObject(torrentFiles, torrentPieceSize)
+torrentHashs = []
+'''
+temp = f1.readBlock()
+while len(temp) != 0:
+    h = hashlib.sha3_512()
+    h.update(temp)
+    torrentHashs.append(h.digest())
+    f1.readBlock()
+    del(h)
 #generate data-structure for metadata file
+'''
+
+for i in range(0, 89):
+    f1._loadBuffer(i*256*1024)
+print("finished test")
+
+
+
 '''
 import math
 import hashlib
