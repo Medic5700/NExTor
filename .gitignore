@@ -2,6 +2,8 @@
 *.tmp
 *.log
 *.json
+*.wbk
+~*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
