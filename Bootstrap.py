@@ -40,8 +40,8 @@ def BootstrapServer():
         version = processed[1]
         clientName = processed[2]
         
-        handshake = publicKey + ":" + "v0.0" + ":" + "bootstrap" + ":"
-        handshake = handshake.ljust(256, '_')
+        handshake = publicKey + ":" + "0000" + ":" + "bootstrap" + ":" + "Bootstrap.py:v0.0" + ":"
+        handshake = handshake.ljust(192, ' ').ljust(256, '=')
         
         connection.send(handshake.encode("utf-8"))
         
